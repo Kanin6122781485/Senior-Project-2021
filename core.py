@@ -110,6 +110,7 @@ holin = ['holin']
 count2 = 0
 
 sequence = []
+sequenceWithHolin = []
 
 for filename in os.scandir(acessionNumberPath):
     #if count2 >= 200: #only 20 file for test 
@@ -121,6 +122,7 @@ for filename in os.scandir(acessionNumberPath):
         holinExist = False
         ignoreCheck = False
         matchingKey = False
+        intermediateSequence = []
         
         for line in lines:
             if (line.strip() == "<!DOCTYPE html>"):
@@ -143,13 +145,22 @@ for filename in os.scandir(acessionNumberPath):
                 
                     sequence.append(cleanText[-1].upper())
                     
+                    intermediateSequence.append(cleanText[-1].upper())
+                    
         ### PUT JSON OUTPUT AROUND HERE SOMEWHERE ###
         
         if not ignoreCheck and matchingKey:
             print(holinExist) #Holin Exist?
+            
+            for index, item in enumerate(intermediateSequence):
+                intermediateSequence[index] = [item, holinExist]
+            
+                sequenceWithHolin.append(intermediateSequence)
+            
+                #print(intermediateSequence)
 
 sequenceFileCount = 0
-sequenceOutputNumber = 1000
+sequenceOutputLimit = 1000
 baseSequenceFileName = targetPath + '/SequenceOutput'
 
 if not os.path.exists(baseSequenceFileName):
@@ -158,7 +169,7 @@ if not os.path.exists(baseSequenceFileName):
 baseSequenceFileName = baseSequenceFileName + '/SequenceOutput'
 
 for index, item in enumerate(sequence):
-    if index%sequenceOutputNumber == 0:
+    if index%sequenceOutputLimit == 0:
         sequenceFileCount = sequenceFileCount + 1
         SequenceFileName = baseSequenceFileName + str(sequenceFileCount) + '.txt'
         fileOutput = open(SequenceFileName, 'w')
@@ -167,39 +178,54 @@ for index, item in enumerate(sequence):
     fileOutput = open(SequenceFileName, 'a')
     fileOutput.write(item + "\n\n")
 
+SequenceWithHolinFileName = targetPath + '/sequenceWithHolin.txt'
+fileOutput = open(SequenceWithHolinFileName, 'w')
+fileOutput.close()
+
+for index, item in enumerate(sequenceWithHolin):
+    fileOutput = open(SequenceWithHolinFileName, 'a')
+    for index, itemInside in enumerate(item):
+        fileOutput.write(itemInside[0] + " " + str(itemInside[1]) + "\n\n")
+
 ### Fifth Step: NCBI Conserved Domain ###
 
 # Use SequenceOutput file to CD-Batch Search at https://www.ncbi.nlm.nih.gov/Structure/bwrpsb/bwrpsb.cgi? 
 
-driver = webdriver.Chrome()
-driver.get('https://www.ncbi.nlm.nih.gov/Structure/bwrpsb/bwrpsb.cgi?')
+FileCount = 0
 
-#Path to Upload File
-xpath4 = '//*[@id="frm_New_Search"]/div/table/tbody/tr/td/table/tbody/tr[1]/td[1]/div[4]/input'
-searchinput4 = driver.find_element(by=By.XPATH, value=xpath4)
-searchinput4.send_keys(os.path.abspath(targetPath + '/SequenceOutput/SequenceOutput1.txt'))
+for filename in os.scandir('./' + genome + '/SequenceOutput'):
+    print (os.path.abspath(filename))
+    FileCount = FileCount + 1
 
-#Path to Submit Form
-xpath5 = '//*[@id="frm_New_Search"]/div/table/tbody/tr/td/table/tbody/tr[2]/td/table/tbody/tr/td[3]/input'
-searchinput5 = driver.find_element(by=By.XPATH, value=xpath5)
-searchinput5.click()
+    driver = webdriver.Chrome()
+    driver.get('https://www.ncbi.nlm.nih.gov/Structure/bwrpsb/bwrpsb.cgi?')
 
-try:
-    element = WebDriverWait(driver, 600).until(
-        EC.visibility_of_element_located((By.XPATH, '//*[@id="tbl_DLPanel"]/tbody/tr[3]/td[3]/input'))
-    )
-finally:
-    driver.find_element(by=By.XPATH, value='//*[@id="hid_dmode_full"]').click()
-    driver.find_element(by=By.XPATH, value='//*[@id="tbl_DLPanel"]/tbody/tr[3]/td[3]/input').click()
+    #Path to Upload File
+    xpath4 = '//*[@id="frm_New_Search"]/div/table/tbody/tr/td/table/tbody/tr[1]/td[1]/div[4]/input'
+    searchinput4 = driver.find_element(by=By.XPATH, value=xpath4)
+    searchinput4.send_keys(os.path.abspath(filename))
+
+    #Path to Submit Form
+    xpath5 = '//*[@id="frm_New_Search"]/div/table/tbody/tr/td/table/tbody/tr[2]/td/table/tbody/tr/td[3]/input'
+    searchinput5 = driver.find_element(by=By.XPATH, value=xpath5)
+    searchinput5.click()
+
+    try:
+        element = WebDriverWait(driver, 600).until(
+            EC.visibility_of_element_located((By.XPATH, '//*[@id="tbl_DLPanel"]/tbody/tr[3]/td[3]/input'))
+        )
+    finally:
+        driver.find_element(by=By.XPATH, value='//*[@id="hid_dmode_full"]').click()
+        driver.find_element(by=By.XPATH, value='//*[@id="tbl_DLPanel"]/tbody/tr[3]/td[3]/input').click()
     
-    downloadPath = 'C:/Users/User/Downloads/hitdata.txt'
-    targetPath = './' + genome
-    targetFilePath = targetPath + '/hitdata1.txt'
+        downloadPath = 'C:/Users/User/Downloads/hitdata.txt'
+        targetPath = './' + genome
+        targetFilePath = targetPath + '/hitdata' + str(FileCount) + '.txt'
 
-    while not os.path.exists(downloadPath):
-        time.sleep(1)
+        while not os.path.exists(downloadPath):
+            time.sleep(1)
 
-    driver.close()
-    shutil.move(downloadPath, targetFilePath)
+        driver.close()
+        shutil.move(downloadPath, targetFilePath)
     
-    print('Done')
+print('Done')
