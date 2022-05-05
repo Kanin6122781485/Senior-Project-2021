@@ -151,13 +151,12 @@ for filename in os.scandir(acessionNumberPath):
         
         if not ignoreCheck and matchingKey:
             print(holinExist) #Holin Exist?
-            
+
             for index, item in enumerate(intermediateSequence):
                 intermediateSequence[index] = [item, holinExist]
             
-                sequenceWithHolin.append(intermediateSequence)
-            
-                #print(intermediateSequence)
+            sequenceWithHolin.append(intermediateSequence)
+                
 
 sequenceFileCount = 0
 sequenceOutputLimit = 1000
@@ -182,7 +181,10 @@ SequenceWithHolinFileName = targetPath + '/sequenceWithHolin.txt'
 fileOutput = open(SequenceWithHolinFileName, 'w')
 fileOutput.close()
 
+
+
 for index, item in enumerate(sequenceWithHolin):
+    #print(item)
     fileOutput = open(SequenceWithHolinFileName, 'a')
     for index, itemInside in enumerate(item):
         fileOutput.write(itemInside[0] + " " + str(itemInside[1]) + "\n\n")
